@@ -1,0 +1,6 @@
+---
+- name: Test
+  hosts: all
+  become: yes
+  roles:
+    - role: create-service-account

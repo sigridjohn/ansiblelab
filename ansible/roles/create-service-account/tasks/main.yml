@@ -1,0 +1,23 @@
+---
+- name: Skapa grupp svc-accounts
+  ansible.builtin.group:
+    name: svc-accounts
+    state: present
+
+- name: Skapa användare svc-ansible
+  ansible.builtin.user:
+    name: svc-ansible
+    group: svc-accounts
+    shell: /bin/bash
+    home: /home/svc-ansible
+    create_home: true
+    password_lock: true
+    state: present
+
+- name: Sätt rättigheter på hemkatalog
+  ansible.builtin.file:
+    path: /home/svc-ansible
+    owner: svc-ansible
+    group: svc-accounts
+    mode: '0750'
+    state: directory
