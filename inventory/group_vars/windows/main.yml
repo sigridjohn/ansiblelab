@@ -1,0 +1,24 @@
+# =============================================================================
+# group_vars/windows/main.yml
+# Windows-specific variables.
+# In Module 14, participants update ansible_winrm_transport to kerberos
+# and change ansible_user to the domain service account format.
+# =============================================================================
+
+# --- Module 12 (NTLM — initial connectivity test) ---
+# ansible_winrm_transport: ntlm     ← set in lab.ini for initial testing
+
+# --- Module 14 (Kerberos — production-style AD auth) ---
+# Uncomment and complete these after configuring /etc/krb5.conf:
+#
+# ansible_winrm_transport: kerberos
+# ansible_user: svc-ansible@LAB.COURSE.LOCAL
+# ansible_winrm_kerberos_delegation: false
+
+# Windows deployment paths (equivalent of Linux deploy dirs)
+win_deploy_config_dir: 'C:\deploy\config'
+win_deploy_log_dir: 'C:\deploy\logs'
+win_deploy_binary_dir: 'C:\deploy\bin'
+
+# Service account on Windows side
+win_service_account: svc-ansible

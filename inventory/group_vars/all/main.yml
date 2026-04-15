@@ -1,0 +1,32 @@
+# =============================================================================
+# group_vars/all/main.yml
+# Variables that apply to every host in the inventory.
+# Used in Module 4 (Variables & Facts) exercises.
+# =============================================================================
+
+# Environment label — override per group or host for different environments
+lab_environment: "training"
+
+# Standard deployment paths used throughout the course
+deploy_config_dir: /etc/deploy
+deploy_log_dir: /var/log/deploy
+deploy_binary_dir: /usr/local/bin
+
+# Service account created in Module 3 and used throughout
+deploy_service_account: svc-ansible
+deploy_service_group: svc-accounts
+
+# Default shell for managed service accounts
+default_shell: /bin/bash
+
+# NTP server used in Module 8 (Galaxy role exercise)
+# This is a placeholder — no real NTP sync occurs in the lab
+ntp_server: "ntp.lab.local"
+
+# Log retention in days
+log_retention_days: 30
+
+# Authorised users list — used in Module 5 Jinja2 template exercise
+authorised_users:
+  - labadmin
+  - svc-ansible

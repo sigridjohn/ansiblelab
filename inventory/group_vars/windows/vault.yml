@@ -1,0 +1,14 @@
+# =============================================================================
+# group_vars/windows/vault.yml
+# This file should be encrypted with Ansible Vault before use.
+#
+# To encrypt:
+#   ansible-vault encrypt inventory/group_vars/windows/vault.yml
+#
+# To edit after encrypting:
+#   ansible-vault edit inventory/group_vars/windows/vault.yml
+# =============================================================================
+
+# Replace this with the actual password provided by your instructor on Day 3.
+# After filling in the value, encrypt this file with ansible-vault.
+ansible_password: "REPLACE_WITH_LAB_PASSWORD"

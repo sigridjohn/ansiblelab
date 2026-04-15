@@ -1,0 +1,101 @@
+version: "3.9"
+
+# Ansible Course Lab — Linux Fleet
+# Six Ubuntu 22.04 containers organised into three logical groups:
+#   webservers: web01, web02
+#   databases:  db01,  db02
+#   monitoring: mon01, mon02
+#
+# All containers share one SSH key (see ssh/lab_key).
+# Ansible connects from your laptop (the control node) on localhost
+# via the port mappings below.
+#
+# Usage:
+#   docker-compose up -d          Start all containers
+#   docker-compose down           Stop and remove containers
+#   docker-compose ps             Check container status
+#   docker-compose logs web01     View logs for a specific container
+
+services:
+
+  # ── WEBSERVERS ──────────────────────────────────────────────────────────────
+  web01:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web01
+    hostname: web01
+    ports:
+      - "2201:22"
+    networks:
+      - ansible-lab
+    restart: unless-stopped
+
+  web02:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web02
+    hostname: web02
+    ports:
+      - "2202:22"
+    networks:
+      - ansible-lab
+    restart: unless-stopped
+
+  # ── DATABASES ───────────────────────────────────────────────────────────────
+  db01:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: db01
+    hostname: db01
+    ports:
+      - "2203:22"
+    networks:
+      - ansible-lab
+    restart: unless-stopped
+
+  db02:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: db02
+    hostname: db02
+    ports:
+      - "2204:22"
+    networks:
+      - ansible-lab
+    restart: unless-stopped
+
+  # ── MONITORING ──────────────────────────────────────────────────────────────
+  mon01:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mon01
+    hostname: mon01
+    ports:
+      - "2205:22"
+    networks:
+      - ansible-lab
+    restart: unless-stopped
+
+  mon02:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mon02
+    hostname: mon02
+    ports:
+      - "2206:22"
+    networks:
+      - ansible-lab
+    restart: unless-stopped
+
+networks:
+  ansible-lab:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

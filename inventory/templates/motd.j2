@@ -1,0 +1,18 @@
+###############################################################################
+#                                                                             #
+#   {{ ansible_facts['hostname'] | upper }}
+#   Environment: {{ lab_environment | upper }}
+#   Role:        {{ server_role | default('unassigned') }}
+#                                                                             #
+#   This system is managed by Ansible.                                        #
+#   Manual changes will be overwritten on the next playbook run.             #
+#                                                                             #
+#   Authorised users:
+{% for user in authorised_users %}
+#     - {{ user }}
+{% endfor %}
+#                                                                             #
+#   Log directory: {{ deploy_log_dir }}
+#   Config dir:    {{ deploy_config_dir }}
+#                                                                             #
+###############################################################################

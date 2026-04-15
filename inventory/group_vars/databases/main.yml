@@ -1,0 +1,9 @@
+# =============================================================================
+# group_vars/databases/main.yml
+# Variables that apply to database hosts (db01, db02).
+# =============================================================================
+
+server_role: database
+log_level: warn
+
+environment_tier: prod

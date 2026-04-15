@@ -1,0 +1,10 @@
+# =============================================================================
+# group_vars/webservers/main.yml
+# Variables that apply to webserver hosts (web01, web02).
+# =============================================================================
+
+server_role: webserver
+log_level: info
+
+# Used in Module 10 inventory hierarchy exercise
+environment_tier: prod

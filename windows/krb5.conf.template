@@ -1,0 +1,52 @@
+# =============================================================================
+# /etc/krb5.conf — Kerberos Configuration for Ansible Course Lab
+# Module 14: Authenticating via Active Directory
+#
+# SETUP INSTRUCTIONS:
+# 1. Copy this file to /etc/krb5.conf on your control node (your laptop)
+#    sudo cp krb5.conf /etc/krb5.conf
+#
+# 2. Replace LAB_KDC_IP with the IP address provided by your instructor
+#
+# 3. Verify with:
+#    kinit svc-ansible@LAB.COURSE.LOCAL
+#    klist
+#
+# 4. If kinit succeeds, Ansible Kerberos auth will work.
+#    If it fails, check: DNS resolution, NTP sync, and that the KDC IP is correct.
+# =============================================================================
+
+[libdefaults]
+    # The default realm — must match your AD domain name exactly (uppercase)
+    default_realm = LAB.COURSE.LOCAL
+
+    # Kerberos v5 only
+    kdc_timesync = 1
+    ccache_type = 4
+    forwardable = true
+    proxiable = true
+
+    # Allow weak crypto only if your lab domain requires it (not recommended in production)
+    # allow_weak_crypto = true
+
+    # DNS lookup settings — important in AD environments
+    dns_lookup_realm = false
+    dns_lookup_kdc = true
+
+[realms]
+    LAB.COURSE.LOCAL = {
+        # Replace LAB_KDC_IP with the domain controller IP provided by your instructor
+        kdc = LAB_KDC_IP
+        admin_server = LAB_KDC_IP
+        default_domain = lab.course.local
+    }
+
+[domain_realm]
+    .lab.course.local = LAB.COURSE.LOCAL
+    lab.course.local = LAB.COURSE.LOCAL
+
+[logging]
+    # Kerberos logs — useful for troubleshooting auth failures
+    default = FILE:/var/log/krb5libs.log
+    kdc = FILE:/var/log/krb5kdc.log
+    admin_server = FILE:/var/log/kadmind.log

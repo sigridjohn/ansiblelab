@@ -1,0 +1,28 @@
+# =============================================================================
+# deploy-agent configuration
+# Managed by Ansible — do not edit manually
+# Host:        {{ ansible_facts['fqdn'] | default(ansible_facts['hostname']) }}
+# Environment: {{ lab_environment }}
+# Generated:   {{ ansible_date_time.iso8601 }}
+# =============================================================================
+
+[agent]
+hostname      = {{ ansible_facts['hostname'] }}
+environment   = {{ lab_environment }}
+log_level     = {{ log_level | default('info') }}
+log_dir       = {{ deploy_log_dir }}
+
+[service_account]
+user          = {{ deploy_service_account }}
+group         = {{ deploy_service_group }}
+
+[enrollment]
+# Populated during capstone — placeholder for now
+server_url    = https://fleet.{{ lab_environment }}.local:8220
+enrollment_key = PLACEHOLDER
+
+[network]
+{% for iface, addrs in ansible_facts['interfaces'] | default([]) %}
+# {{ iface }}
+{% endfor %}
+primary_ip    = {{ ansible_facts['default_ipv4']['address'] | default('unknown') }}

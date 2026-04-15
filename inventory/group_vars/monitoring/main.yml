@@ -1,0 +1,9 @@
+# =============================================================================
+# group_vars/monitoring/main.yml
+# Variables that apply to monitoring hosts (mon01, mon02).
+# =============================================================================
+
+server_role: monitoring
+log_level: debug
+
+environment_tier: staging
