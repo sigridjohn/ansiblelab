@@ -1,227 +1,247 @@
-# Ansible Course Lab
+# Ansible Lab – Arkitektur och Struktur
 
-A self-contained lab environment for an Ansible course spanning three days. Your laptop acts as the **Ansible control node** and manages a fleet of six Ubuntu 22.04 Docker containers (Days 1–2) plus a Windows Server 2022 VM (Day 3).
-
----
-
-## Prerequisites
-
-| Tool | Install |
-|---|---|
-| Python 3 + pip | system package manager |
-| Ansible | `pip3 install ansible` |
-| Docker Desktop | https://www.docker.com/products/docker-desktop |
-| Git | https://git-scm.com |
-
-Verify Ansible is installed:
-```bash
-ansible --version
-```
+Detta repository är designat för att demonstrera en realistisk Ansible-miljö där flera typer av noder (Linux, Windows, databaser, monitoring, etc.) hanteras via en central kontrollnod. Fokus ligger på hur komponenterna samverkar snarare än hur miljön sätts upp.
 
 ---
 
-## Repository Structure
+## Översikt
 
-```
-ansiblelab/
-├── docker/
-│   ├── Dockerfile              # Ubuntu 22.04 image with SSH + Python 3
-│   └── docker-compose.yml      # Defines the six lab containers
-├── guides/
-│   ├── README.md               # Pre-work setup guide (complete before Day 1)
-│   ├── day3-windows.md         # Windows & Active Directory setup (Day 3)
-│   └── instructor-operations.md
-├── inventory/
-│   ├── lab.ini                 # Main inventory — all hosts and connection vars
-│   ├── group_vars/
-│   │   ├── all/main.yml        # Variables applied to every host
-│   │   ├── webservers/main.yml
-│   │   ├── databases/main.yml
-│   │   ├── monitoring/main.yml
-│   │   └── windows/
-│   │       ├── main.yml        # Windows connection vars (NTLM → Kerberos)
-│   │       └── vault.yml       # Encrypted Windows password
-│   └── templates/
-│       ├── motd.j2             # Jinja2 MOTD template exercise
-│       └── agent.conf.j2       # Jinja2 config template exercise
-├── ssh/
-│   ├── lab_key                 # Private key (do not share)
-│   └── lab_key.pub
-└── windows/
-    ├── Provision-LabVM.ps1     # PowerShell provisioning script for the Windows VM
-    └── krb5.conf.template      # Kerberos config template (used in Day 3)
-```
+Arkitekturen bygger på klassiska Ansible-koncept:
+
+* **Inventory** definierar vilka system som hanteras
+* **Group variables** styr beteende per roll/hostgrupp
+* **Playbooks** beskriver *vad* som ska göras
+* **Roles** organiserar *hur* det görs
+* **Templates** möjliggör dynamisk konfiguration
+* **Docker** används för att simulera en distribuerad miljö
 
 ---
 
-## Quick Start
+## Struktur och ansvar
 
-### Step 1 — Clone the repo
+### `ansible/` – kärnan i automationen
 
-```bash
-git clone https://github.com/sigridjohn/ansiblelab
-cd ansiblelab
-```
+Detta är den centrala katalogen där all Ansible-logik bor.
 
-### Step 2 — Start the Linux fleet
+#### `ansible.cfg`
 
-```bash
-cd docker
-docker-compose up -d
-```
+Definierar globala inställningar för Ansible, t.ex.:
 
-The first run downloads the Ubuntu base image and builds the containers — allow ~5 minutes. Subsequent starts are instant.
+* vilken inventory som används som default
+* var roller och templates finns
+* SSH-beteende och anslutningsparametrar
 
-Verify all six containers are running:
-```bash
-docker-compose ps
-```
-
-You should see `web01`, `web02`, `db01`, `db02`, `mon01`, and `mon02` with status `Up`.
-
-### Step 3 — Fix SSH key permissions
-
-```bash
-chmod 600 ssh/lab_key
-```
-
-### Step 4 — Configure ansible.cfg
-
-Create an `ansible.cfg` file in the repo root:
-
-```ini
-[defaults]
-inventory           = ./inventory/lab.ini
-private_key_file    = ./ssh/lab_key
-remote_user         = labadmin
-host_key_checking   = False
-
-[ssh_connection]
-ssh_args = -o ControlMaster=auto -o ControlPersist=60s
-```
-
-### Step 5 — Verify everything works
-
-```bash
-ansible all -m ping
-```
-
-All six hosts should return `SUCCESS` with `"ping": "pong"`.
+Den fungerar som "runtime-konfiguration" för alla playbooks.
 
 ---
 
-## Lab Fleet
+#### `inventory/`
 
-### Linux containers (Days 1–2)
+##### `lab.ini`
 
-| Host | Group | SSH port (localhost) |
-|---|---|---|
-| web01 | webservers | 2201 |
-| web02 | webservers | 2202 |
-| db01 | databases | 2203 |
-| db02 | databases | 2204 |
-| mon01 | monitoring | 2205 |
-| mon02 | monitoring | 2206 |
+Den statiska inventory-filen som definierar:
 
-Connect manually to any container:
-```bash
-ssh -i ssh/lab_key -p 2201 labadmin@127.0.0.1
-```
+* hosts (t.ex. containrar eller VM:er)
+* grupper (webservers, databases, windows, etc.)
+* eventuella anslutningsparametrar (SSH, WinRM)
 
-### Windows VM (Day 3 only)
-
-A Windows Server 2022 VM pre-provisioned for the course. Connection details (IP address, local admin password, domain service account password, and KDC IP) are distributed by the instructor on Day 3 morning.
-
-See `guides/day3-windows.md` for full setup instructions, including:
-- **Module 12** — WinRM via NTLM (quick start)
-- **Module 14** — WinRM via Kerberos (production-style AD auth)
+Denna fil är ingångspunkten som binder ihop infrastrukturen med Ansible.
 
 ---
 
-## Inventory Groups
+##### `group_vars/`
 
-```
-all_managed
-├── linux
-│   ├── webservers  (web01, web02)
-│   ├── databases   (db01, db02)
-│   └── monitoring  (mon01, mon02)
-└── windows
-    └── winlab01
-```
+Här definieras variabler kopplade till grupper i inventoryn.
 
----
+Strukturen speglar grupperna i `lab.ini`, vilket gör att:
 
-## Day 3 — Windows Setup (short version)
+* variabler laddas automatiskt baserat på hostens grupptillhörighet
+* logik kan hållas generisk i playbooks och roles
 
-1. Open `inventory/lab.ini` and replace `WIN_VM_IP` with the address your instructor provides.
-2. Set the Windows password in `inventory/group_vars/windows/vault.yml` and encrypt it:
-   ```bash
-   ansible-vault encrypt inventory/group_vars/windows/vault.yml
-   ```
-3. Install `pywinrm`:
-   ```bash
-   pip3 install pywinrm
-   ```
-4. Test connectivity (Module 12 — NTLM):
-   ```bash
-   ansible windows -m win_ping --ask-vault-pass
-   ```
+Exempel:
 
-For Kerberos setup (Module 14), follow `guides/day3-windows.md`.
+* `all/main.yml` → globala defaults
+* `webservers/main.yml` → webbserverspecifika värden
+* `databases/main.yml` → databaskonfiguration
+* `windows/main.yml` → WinRM, autentisering etc.
+
+###### `vault.yml`
+
+Innehåller känsliga värden (lösenord, tokens), krypterade med **Ansible Vault**.
+Separering av hemligheter från övrig konfiguration är en central best practice.
 
 ---
 
-## Managing the Lab
+#### `playbooks/`
 
-```bash
-# Start all containers
-docker-compose up -d
+##### `site.yml`
 
-# Stop containers (data is preserved)
-docker-compose stop
+Huvud-playbooken – fungerar som orchestration layer.
 
-# Stop and remove containers
-docker-compose down
+Typiskt ansvar:
 
-# Rebuild from scratch (fresh state)
-docker-compose down && docker-compose up -d --build
+* mappar hostgrupper → roller
+* definierar körordning
+* sätter globala parametrar per körning
 
-# View logs for a specific container
-docker-compose logs web01
+Exempel på logik:
+
+```yaml
+- hosts: webservers
+  roles:
+    - web-role
+
+- hosts: databases
+  roles:
+    - db-role
 ```
+
+Denna fil är entrypointen vid exekvering och binder ihop hela systemet.
 
 ---
 
-## Troubleshooting
+#### `roles/`
 
-**`ssh: connect to host 127.0.0.1 port 2201: Connection refused`**
-The container is not running. Run `docker-compose ps` and restart with `docker-compose up -d`.
+Roller är den primära abstraheringen för återanvändbar automation.
 
-**`WARNING: UNPROTECTED PRIVATE KEY FILE!`**
-Fix key permissions: `chmod 600 ssh/lab_key`
+Exempel:
 
-**`No inventory was parsed` or `provided hosts list is empty`**
-You are running `ansible` from the wrong directory. Run from the repo root where `ansible.cfg` is located.
-
-**`ansible: command not found` (macOS)**
-Add pip's bin directory to your PATH:
-```bash
-echo 'export PATH="$HOME/Library/Python/3.x/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
 ```
-Replace `3.x` with your Python version (`python3 --version`).
+roles/
+└── create-service-account/
+    └── tasks/
+        └── main.yml
+```
 
-**Windows: `win_ping` fails with "connection refused" on port 5985**
-WinRM is not reachable. Confirm the VM IP in your inventory is correct and that you can ping the VM. Ask your instructor to verify the WinRM firewall rule.
+En role kapslar:
 
-**Windows: Kerberos — "the specified credentials were rejected by the server"**
-Clock skew between your laptop and the domain controller must be within 5 minutes. Check `date` on your machine vs the VM clock. Also confirm the UPN format is `svc-ansible@LAB.COURSE.LOCAL` (uppercase domain).
+* tasks (vad som görs)
+* eventuella handlers
+* defaults/vars
+* templates
+* files
+
+I detta repo är strukturen avskalad men följer standardkonventionen:
+`tasks/main.yml` fungerar som rollens entrypoint.
+
+Roller anropas från playbooks och appliceras på specifika hostgrupper.
 
 ---
 
-## Notes
+#### `templates/`
 
-- The SSH private key (`ssh/lab_key`) is baked into all containers at build time. It is a lab-only key — do not use it for anything outside this course.
-- The `ansible-vault` password you choose for the Windows vault is only needed during the lab. Write it on a sticky note — losing it means re-running the setup steps.
-- Container state (files written inside containers by playbooks) is lost on `docker-compose down`. Use `docker-compose stop` / `start` to preserve state between sessions.
+Jinja2-templates (`.j2`) används för att generera konfigurationsfiler dynamiskt.
+
+Exempel:
+
+* `motd.j2` → genererar systemets MOTD baserat på variabler
+* `agent.conf.j2` → konfigurationsfil där värden injiceras från `group_vars`
+
+Templates används typiskt via `template`-modulen i en role:
+
+```yaml
+- name: Render config
+  template:
+    src: agent.conf.j2
+    dest: /etc/agent.conf
+```
+
+Detta möjliggör:
+
+* miljöspecifika konfigurationer
+* DRY-principen (ingen duplicering av statiska filer)
+
+---
+
+### `docker/` – simulerad infrastruktur
+
+#### `Dockerfile`
+
+Definierar basimagen för noderna:
+
+* Ubuntu 22.04
+* Python (krav för Ansible)
+* SSH (för anslutning)
+
+Varje container fungerar som en "host" i inventoryn.
+
+---
+
+#### `docker-compose.yml`
+
+Orkestrerar flera containrar:
+
+* skapar nätverk
+* startar flera roller (web, db, etc.)
+* exponerar portar vid behov
+
+Denna del gör att labben kan köras lokalt men ändå efterlikna en distribuerad miljö.
+
+---
+
+### `windows/` – Windows-specifik hantering
+
+Eftersom Windows inte använder SSH på samma sätt som Linux:
+
+* PowerShell-script (`Provision-LabVM.ps1`) används för bootstrap
+* `krb5.conf.template` används för Kerberos-autentisering
+
+Detta kopplas till Ansible via WinRM och variabler i `group_vars/windows/`.
+
+---
+
+### `ssh/`
+
+Dokumentation kring:
+
+* nyckelhantering
+* autentisering mellan kontrollnod och hosts
+
+SSH är standardtransporten för Linux-noder i Ansible.
+
+---
+
+### `guides/`
+
+Innehåller stödmaterial för labben, t.ex.:
+
+* instruktörsguider
+* specifika scenarion (t.ex. Windows-integration)
+
+Dessa är separerade från kärnlogiken för att hålla repot modulärt.
+
+---
+
+## Hur allt hänger ihop
+
+Förenklad exekveringskedja:
+
+1. **Ansible startas via `site.yml`**
+2. **Inventory (`lab.ini`) laddas**
+3. **Hosts matchas mot grupper**
+4. **Group variables (`group_vars/`) injiceras**
+5. **Playbook applicerar roller på grupper**
+6. **Roller exekverar tasks**
+7. **Tasks använder templates + variabler**
+8. **Konfiguration skrivs till målnoder**
+
+---
+
+## Designprinciper i repot
+
+* **Separation of concerns**
+
+  * inventory ≠ logik ≠ konfiguration ≠ hemligheter
+* **Konvention över konfiguration**
+
+  * Ansible laddar `group_vars` och `roles` automatiskt
+* **Återanvändbarhet**
+
+  * roller kan appliceras på flera hostgrupper
+* **Deklarativ modell**
+
+  * playbooks beskriver slutläge, inte steg-för-steg-skript
+
+---
+
+Denna struktur speglar hur större Ansible-miljöer organiseras i praktiken och ger en tydlig separation mellan infrastruktur, konfiguration och automation.
