@@ -201,17 +201,6 @@ SSH är standardtransporten för Linux-noder i Ansible.
 
 ---
 
-### `guides/`
-
-Innehåller stödmaterial för labben, t.ex.:
-
-* instruktörsguider
-* specifika scenarion (t.ex. Windows-integration)
-
-Dessa är separerade från kärnlogiken för att hålla repot modulärt.
-
----
-
 ## Hur allt hänger ihop
 
 Förenklad exekveringskedja:
